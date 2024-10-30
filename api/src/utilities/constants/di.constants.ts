@@ -1,0 +1,10 @@
+export const ApiInfoRepository = Symbol('ApiInfoRepository');
+export const Logger = Symbol('Logger');
+export const UserRepository = Symbol('UserRepository');
+export const GarmentRepositoryToken = Symbol('GarmentRepository');
+export const OutfitRepositoryToken = Symbol('OutfitRepository');
+export const PasswordManager = Symbol('PasswordManager');
+export const JwtManager = Symbol('JwtManager');
+export const OutfitPlanRepositoryToken = Symbol('OutfitPlanRepository');
+export const StorageStrategyToken = Symbol('StorageStrategy');
+export const StorageManagerToken = Symbol('StorageManager');

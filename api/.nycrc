@@ -1,0 +1,7 @@
+{
+  "reporter": ["text", "html"],
+  "include": ["src/**/*.ts"],
+  "exclude": ["**/*.test.ts", "node_modules"],
+  "extension": [".ts"],
+  "require": ["ts-node/register"]
+}

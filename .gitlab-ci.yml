@@ -1,0 +1,126 @@
+variables:
+  DOCKER_IMAGE: "soufcode/garbin-backend"
+
+stages:
+  - test
+  - build
+  - deploy
+
+run_tests:
+  stage: test
+  image: node:20
+  tags:
+    - general
+  services:
+    - name: mariadb:10
+      alias: dbms-test
+      command: [
+        "--character-set-server=utf8mb4",
+        "--collation-server=utf8mb4_unicode_ci",
+      ]
+      variables:
+        MYSQL_ALLOW_EMPTY_PASSWORD: "false"
+        MYSQL_ROOT_PASSWORD: "rootpassword"
+        MYSQL_DATABASE: "garbin_test_db"
+  variables:
+    DB_HOST: "dbms-test"
+    DB_NAME: "garbin_test_db"
+    DB_USERNAME: "root"
+    DB_PASSWORD: "rootpassword"
+    PRIVATE_KEY_FILE: "secrets/signing/signing.key"
+  before_script:
+    - apt-get update && apt-get install make
+  script:
+    - mkdir -p api/secrets/signing
+    - echo "Private Key Length = ${#SIGNING_PRIVATE_KEY_BASE64}"
+    - echo "Public Key Length = ${#SIGNING_PUBLIC_KEY_BASE64}"
+    - echo "$SIGNING_PRIVATE_KEY_BASE64" | base64 -d > api/secrets/signing/signing.key
+    - echo "$SIGNING_PUBLIC_KEY_BASE64" | base64 -d > api/secrets/signing/signing.pub
+    - chmod 600 api/secrets/signing/signing.key
+    - chmod 644 api/secrets/signing/signing.pub
+    - export PUBLIC_KEY_FILE=$(pwd)/api/secrets/signing/signing.pub
+    - make qa test
+  rules:  
+    - if: '$CI_COMMIT_BRANCH'
+
+build_image_staging:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  tags:
+    - general
+  before_script:
+    - docker login -u $DOCKER_USER -p $DOCKER_PWD
+    - mkdir -p api/secrets/signing
+    - echo "Private Key Length = ${#SIGNING_PRIVATE_KEY_BASE64}"
+    - echo "Public Key Length = ${#SIGNING_PUBLIC_KEY_BASE64}"
+    - echo "$SIGNING_PRIVATE_KEY_BASE64" | base64 -d > api/secrets/signing/signing.key
+    - echo "$SIGNING_PUBLIC_KEY_BASE64" | base64 -d > api/secrets/signing/signing.pub
+    - chmod 600 api/secrets/signing/signing.key
+    - chmod 644 api/secrets/signing/signing.pub
+    - export PUBLIC_KEY_FILE=$(pwd)/api/secrets/signing/signing.pub
+  script:
+    - docker build -t $DOCKER_IMAGE:staging -f ./api/docker/Dockerfile.staging .
+    - docker push $DOCKER_IMAGE:staging
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+
+deploy_staging:
+  stage: deploy
+  image: docker:27
+  services:
+    - docker:27-dind
+  tags:
+    - general
+  before_script:
+    - chmod 400 $SSH_KEY
+  script:
+  - ssh -o StrictHostKeyChecking=no -i $SSH_KEY api@51.158.70.199 "
+      bash -l -c 'docker compose -f ./staging/docker-compose.yml pull && docker compose -f ./staging/docker-compose.yml up -d'"
+      bash -l -c 'docker exec garbin-api-staging npm run migration:run'
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+
+
+build_image_prod:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  tags:
+    - general
+  before_script:
+    - docker login -u $DOCKER_USER -p $DOCKER_PWD
+    - mkdir -p api/secrets/signing
+    - echo "Private Key Length = ${#SIGNING_PRIVATE_KEY_BASE64}"
+    - echo "Public Key Length = ${#SIGNING_PUBLIC_KEY_BASE64}"
+    - echo "$SIGNING_PRIVATE_KEY_BASE64" | base64 -d > api/secrets/signing/signing.key
+    - echo "$SIGNING_PUBLIC_KEY_BASE64" | base64 -d > api/secrets/signing/signing.pub
+    - chmod 600 api/secrets/signing/signing.key
+    - chmod 644 api/secrets/signing/signing.pub
+    - export PUBLIC_KEY_FILE=$(pwd)/api/secrets/signing/signing.pub
+  script:
+    - docker build -t $DOCKER_IMAGE:prod -f ./api/docker/Dockerfile.prod .
+    - docker push $DOCKER_IMAGE:prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+deploy_prod:
+  stage: deploy
+  image: docker:27
+  services:
+    - docker:27-dind
+  tags:
+    - general
+  before_script:
+    - chmod 400 $SSH_KEY
+  script:
+  - ssh -o StrictHostKeyChecking=no -i $SSH_KEY api@51.158.70.199 "
+      bash -l -c 'docker compose -f ./prod/docker-compose.yml pull && docker compose -f ./prod/docker-compose.yml up -d'"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'

@@ -1,0 +1,59 @@
+services:
+  garbin-api-dev:
+    container_name: garbin-api-dev
+    build:
+      context: .
+      dockerfile: ./api/docker/Dockerfile.dev
+    command: /bin/bash -c "while sleep 1000; do :; done"
+    working_dir: /home/api
+    networks:
+      - garbin-dev-network
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./api:/home/api:cached
+    depends_on:
+      - dbms-dev
+
+
+  migration-dev:
+    build:
+      context: .
+      dockerfile: ./api/docker/Dockerfile.dev
+    profiles: ["migration"]
+    environment:
+      - DB_HOST=dbms-dev
+      - DB_PORT=3306
+      - DB_USERNAME=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=garbin_dev_db
+    command: bash -c "npm run migration:run"
+    networks:
+      - garbin-dev-network
+    ports:
+      - "5001:5001"
+    depends_on:
+      - dbms-dev
+
+  dbms-dev:
+    container_name: dbms-dev
+    image: mariadb
+    restart: always
+    ports:
+      - "3309:3306"
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=false
+      - MYSQL_ROOT_PASSWORD=rootpassword
+    command: [
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_unicode_ci",
+    ]
+    volumes:
+      - ./data:/var/lib/mysql
+    networks:
+      - garbin-dev-network
+
+
+networks:
+  garbin-dev-network:
+    driver: bridge

@@ -1,0 +1,10 @@
+.idea
+dbms/dbms-data
+.env
+.env.development
+build
+data
+data-prod
+data-staging
+docker-compose.prod.yml
+docker-compose.staging.yml

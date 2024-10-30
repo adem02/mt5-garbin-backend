@@ -1,0 +1,22 @@
+node_modules
+logs
+coverage
+.nyc_output
+
+
+# local env files
+.env
+.env.staging
+.env.production
+.env.test
+
+
+# package files
+package-lock.json
+
+# webstorm http test files
+*.http
+**/http-client.*
+
+# secrets
+secrets

@@ -1,0 +1,23 @@
+{
+  "entryFile": "./src/server.ts",
+  "noImplicitAdditionalProperties": "throw-on-extras",
+  "controllerPathGlobs": ["src/adapters/controllers/**/*.controller.ts"],
+  "spec": {
+    "securityDefinitions": {
+      "jwt": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    },
+    "specVersion": 3,
+    "outputDirectory": "./public",
+    "basePath": "/api"
+  },
+  "routes": {
+    "basePath": "/api",
+    "routesDir": "./src/frameworks/tsoa",
+    "iocModule": "./src/frameworks/tsoa/iocContainer.ts",
+    "authenticationModule": "./src/frameworks/tsoa/authentication.ts"
+  }
+}
